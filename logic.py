@@ -32,30 +32,44 @@ class GameLogic:
         r1, c1 = start
         r2, c2 = end
         piece = self.board[r1][c1]
-        
-        # 0. Проверка: а выбрали ли мы вообще фигуру?
-        if piece == ".":
-            return False, "Там нет фигуры"
 
-        # Определяем, стоит ли на целевой клетке враг
+        # 1. Сначала рокировка (как исключение)
+        if isinstance(piece, King) and abs(c2 - c1) == 2:
+            if c2 > c1: # Короткая
+                rook = self.board[r1][7]
+                if isinstance(rook, Rook) and not piece.has_moved and not rook.has_moved:
+                    if self.board[r1][5] == "." and self.board[r1][6] == ".":
+                        self.board[r1][6], self.board[r1][5] = piece, rook
+                        self.board[r1][c1], self.board[r1][7] = ".", "."
+                        piece.has_moved, rook.has_moved = True, True
+                        return True, "Рокировка выполнена!"
+            elif c2 < c1: # Длинная
+                rook = self.board[r1][0]
+                if isinstance(rook, Rook) and not piece.has_moved and not rook.has_moved:
+                    if all(self.board[r1][i] == "." for i in range(1, 4)):
+                        self.board[r1][2], self.board[r1][3] = piece, rook
+                        self.board[r1][c1], self.board[r1][0] = ".", "."
+                        piece.has_moved, rook.has_moved = True, True
+                        return True, "Длинная рокировка!"
+            return False, "Рокировка невозможна"
+
+        # --- ВОТ ЭТО МЕСТО "ПОСЛЕ РОКИРОВКИ" --- [cite: 2026-02-05]
+        
         target = self.board[r2][c2]
-        is_enemy = hasattr(target, "color") and target.color != piece.color
-
-        # 1. Проверка валидности хода (с учетом особенностей пешки)
-        if isinstance(piece, Pawn):
-            # Тут мы передаем target_is_enemy, так как у пешки это важно
-            if not piece.is_valid_move(start, end, target_is_enemy=is_enemy):
-                return False, "Пешка так не ходит"
-        else:
-            # Для всех остальных фигур вызываем обычный метод
-            if not piece.is_valid_move(start, end):
-                return False, "Так ходить нельзя"
         
-        # 2. Проверка на "дружественный огонь"
-        if hasattr(target, "color") and target.color == piece.color:
-            return False, "Нельзя бить своих"
+        # Проверка: нельзя бить своих [cite: 2026-02-05]
+        if target != "." and target.color == piece.color:
+            return False, "Там стоит ваша фигура!"
 
-        # 3. Сама логика перемещения в массиве
-        self.board[r2][c2] = piece
-        self.board[r1][c1] = "."
-        return True, "Успешно"
+        # 2. ПРОВЕРКА ОБЫЧНОГО ХОДА
+        if piece.is_valid_move(start, end, self.board):
+            self.board[r2][c2] = piece
+            self.board[r1][c1] = "."
+            
+            if hasattr(piece, 'has_moved'):
+                piece.has_moved = True
+                
+            return True, "Ход выполнен"
+
+        # 3. ФИНАЛЬНЫЙ СТОПОР
+        return False, "Эта фигура так не ходит!"

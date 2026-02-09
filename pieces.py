@@ -11,7 +11,7 @@ class Knight(Piece):
     def __init__(self, color):
         super().__init__(color, 3, "♘" if color == "White" else "♞")
 
-    def is_valid_move(self, start_pos, end_pos):
+    def is_valid_move(self, start_pos, end_pos, board=None):
         row_diff = abs(start_pos[0] - end_pos[0])
         col_diff = abs(start_pos[1] - end_pos[1])
         return (row_diff == 2 and col_diff == 1) or (row_diff == 1 and col_diff == 2)
@@ -20,26 +20,30 @@ class Pawn(Piece):
     def __init__(self, color):
         super().__init__(color, 1, "♙" if color == "White" else "♟")
 
-    def is_valid_move(self, start_pos, end_pos, target_is_enemy=False):
+    def is_valid_move(self, start_pos, end_pos, board):
         direction = 1 if self.color == "White" else -1
         row_diff = end_pos[0] - start_pos[0]
         col_diff = abs(end_pos[1] - start_pos[1])
+        
+        target = board[end_pos[0]][end_pos[1]]
+        is_empty = (target == ".")
+        is_enemy = (target != "." and target.color != self.color)
 
-        # Атака
-        if col_diff == 1 and row_diff == direction:
-            return target_is_enemy
         # Ход прямо
-        if col_diff == 0 and not target_is_enemy:
+        if col_diff == 0 and is_empty:
             if row_diff == direction: return True
             if (start_pos[0] == 1 or start_pos[0] == 6) and row_diff == 2 * direction:
                 return True
+        # Атака
+        if col_diff == 1 and row_diff == direction and is_enemy:
+            return True
         return False
 
 class Bishop(Piece):
     def __init__(self, color):
         super().__init__(color, 3, "♗" if color == "White" else "♝")
 
-    def is_valid_move(self, start_pos, end_pos):
+    def is_valid_move(self, start_pos, end_pos, board=None):
         row_diff = abs(start_pos[0] - end_pos[0])
         col_diff = abs(start_pos[1] - end_pos[1])  
         return row_diff == col_diff and row_diff > 0
@@ -47,8 +51,9 @@ class Bishop(Piece):
 class Rook(Piece):
     def __init__(self, color):
         super().__init__(color, 5, "♖" if color == "White" else "♜")
+        self.has_moved = False # 
 
-    def is_valid_move(self, start_pos, end_pos):
+    def is_valid_move(self, start_pos, end_pos, board=None):
         row_diff = abs(start_pos[0] - end_pos[0])
         col_diff = abs(start_pos[1] - end_pos[1])
         return (row_diff > 0 and col_diff == 0) or (row_diff == 0 and col_diff > 0)
@@ -57,7 +62,7 @@ class Queen(Piece):
     def __init__(self, color):
         super().__init__(color, 9, "♕" if color == "White" else "♛")
 
-    def is_valid_move(self, start_pos, end_pos):
+    def is_valid_move(self, start_pos, end_pos, board=None):
         row_diff = abs(start_pos[0] - end_pos[0])
         col_diff = abs(start_pos[1] - end_pos[1])
         is_rook = (row_diff > 0 and col_diff == 0) or (row_diff == 0 and col_diff > 0)
@@ -67,8 +72,9 @@ class Queen(Piece):
 class King(Piece):
     def __init__(self, color):
         super().__init__(color, 100, "♔" if color == "White" else "♚")
+        self.has_moved = False 
 
-    def is_valid_move(self, start_pos, end_pos):
+    def is_valid_move(self, start_pos, end_pos, board=None):
         row_diff = abs(start_pos[0] - end_pos[0])
         col_diff = abs(start_pos[1] - end_pos[1])
         return row_diff <= 1 and col_diff <= 1 and (row_diff > 0 or col_diff > 0)
