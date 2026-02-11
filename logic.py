@@ -5,6 +5,9 @@ class GameLogic:
         # self.board — это "память" этого конкретного объекта игры
         self.board = [["." for _ in range(8)] for _ in range(8)]
         self.setup_board() 
+        # переменная памяти очередности хода
+        self.current_turn = "White"
+        
 
     def setup_board(self):
         # Расставляем пешки
@@ -33,43 +36,51 @@ class GameLogic:
         r2, c2 = end
         piece = self.board[r1][c1]
 
-        # 1. Сначала рокировка (как исключение)
+        # 1. Проверка очереди хода
+        if piece == "." or piece.color != self.current_turn:
+            return False, f"Сейчас ход {self.current_turn}!"
+
+        # 2. ЛОГИКА РОКИРОВКИ 
         if isinstance(piece, King) and abs(c2 - c1) == 2:
-            if c2 > c1: # Короткая
-                rook = self.board[r1][7]
-                if isinstance(rook, Rook) and not piece.has_moved and not rook.has_moved:
-                    if self.board[r1][5] == "." and self.board[r1][6] == ".":
-                        self.board[r1][6], self.board[r1][5] = piece, rook
-                        self.board[r1][c1], self.board[r1][7] = ".", "."
-                        piece.has_moved, rook.has_moved = True, True
-                        return True, "Рокировка выполнена!"
-            elif c2 < c1: # Длинная
-                rook = self.board[r1][0]
-                if isinstance(rook, Rook) and not piece.has_moved and not rook.has_moved:
-                    if all(self.board[r1][i] == "." for i in range(1, 4)):
-                        self.board[r1][2], self.board[r1][3] = piece, rook
-                        self.board[r1][c1], self.board[r1][0] = ".", "."
-                        piece.has_moved, rook.has_moved = True, True
-                        return True, "Длинная рокировка!"
-            return False, "Рокировка невозможна"
+            is_kingside = c2 > c1  # Определяем сторону (вправо или влево)
+            rook_col = 7 if is_kingside else 0
+            rook_new_col = 5 if is_kingside else 3
+            rook = self.board[r1][rook_col]
 
-        # --- ВОТ ЭТО МЕСТО "ПОСЛЕ РОКИРОВКИ" --- [cite: 2026-02-05]
-        
-        target = self.board[r2][c2]
-        
-        # Проверка: нельзя бить своих [cite: 2026-02-05]
-        if target != "." and target.color == piece.color:
-            return False, "Там стоит ваша фигура!"
+            # Проверяем, что ладья на месте и ни она, ни король еще не ходили
+            if isinstance(rook, Rook) and not piece.has_moved and not rook.has_moved:
+                # Двигаем Короля
+                self.board[r1][c2] = piece
+                self.board[r1][c1] = "."
+                # Двигаем Ладью
+                self.board[r1][rook_new_col] = rook
+                self.board[r1][rook_col] = "."
+                
+                # Помечаем, что они совершили свой первый ход
+                piece.has_moved = True
+                rook.has_moved = True
+                
+                self.switch_turn() 
+                return True, "Рокировка выполнена!"
+            else:
+                return False, "Рокировка невозможна (фигуры уже ходили)!"
 
-        # 2. ПРОВЕРКА ОБЫЧНОГО ХОДА
+        # 3. Ход
         if piece.is_valid_move(start, end, self.board):
             self.board[r2][c2] = piece
             self.board[r1][c1] = "."
             
             if hasattr(piece, 'has_moved'):
                 piece.has_moved = True
-                
+            
+            self.switch_turn() 
             return True, "Ход выполнен"
 
-        # 3. ФИНАЛЬНЫЙ СТОПОР
         return False, "Эта фигура так не ходит!"
+
+    # Метод в класс GameLogic )
+    def switch_turn(self):
+        if self.current_turn == "White":
+            self.current_turn = "Black"
+        else:
+            self.current_turn = "White"

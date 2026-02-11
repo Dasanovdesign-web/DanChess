@@ -11,11 +11,11 @@ def start_game():
     root = tk.Tk()
     
     print("2. Инициализирую GameLogic...")
-    # Если зависнет здесь — значит проблема в logic.py или pieces.py
+    
     game_logic = GameLogic() 
     
     print("3. Инициализирую ChessGUI...")
-    # Если зависнет здесь — значит проблема в gui.py
+    
     app = ChessGUI(root, game_logic)
     
     print("4. Запускаю mainloop (сейчас должно появиться окно)...")

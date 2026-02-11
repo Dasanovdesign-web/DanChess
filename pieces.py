@@ -33,7 +33,7 @@ class Pawn(Piece):
         if col_diff == 0 and is_empty:
             if row_diff == direction: return True
             if (start_pos[0] == 1 or start_pos[0] == 6) and row_diff == 2 * direction:
-                return True
+                return True                  
         # Атака
         if col_diff == 1 and row_diff == direction and is_enemy:
             return True
