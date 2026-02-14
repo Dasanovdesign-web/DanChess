@@ -36,20 +36,19 @@ class ChessGUI:
                     self.images[name] = tksvg.SvgImage(master=self.root, file=path, scale=0.8)
 
     def create_widgets(self):
-        """Создаем сетку 8x8 Сстатичного размера"""
-        # Создаем невидимый пиксель, чтобы размер кнопок был в пикселях, а не в буквах 
+        """Создаем сетку 8x8 статического размера"""
+        # Создаем невидимый пиксель, чтобы размер кнопок был в пикселях
         self.pixel_virtual = tk.PhotoImage(width=1, height=1)
 
         for r in range(8):
             for c in range(8):
-                # цвета доски
                 color = "#eeeed2" if (r + c) % 2 == 0 else "#769656"
                 
                 btn = tk.Button(
                     self.root, 
                     bg=color, 
                     relief="flat",
-                    image=self.pixel_virtual, # фиксации размера 
+                    image=self.pixel_virtual, 
                     compound="center",
                     width=80, height=80, 
                     command=lambda row=r, col=c: self.handle_click(row, col)
@@ -65,12 +64,10 @@ class ChessGUI:
                 btn = self.buttons[r][c]
                 
                 if piece != ".":
-                    # Собираем имя (
                     piece_name = f"{piece.__class__.__name__}_{piece.color}"
                     if piece_name in self.images:
                         btn.config(image=self.images[piece_name], text="")
                     else:
-                        # Если картинки нет оставим текст как запасной вариант
                         symbol = piece.symbol if hasattr(piece, "symbol") else "?"
                         btn.config(text=symbol, image=self.pixel_virtual)
                 else:
@@ -81,7 +78,7 @@ class ChessGUI:
 
     def handle_click(self, r, c):
         if self.selected_square is None:
-            # первый клик: Выбираем фигуру 
+            # Первый клик: Выбираем фигуру 
             piece = self.logic.board[r][c]
             if piece != ".":
                 if piece.color == self.logic.current_turn: 
@@ -90,7 +87,7 @@ class ChessGUI:
                 else:
                     messagebox.showinfo("Очередь", f"Сейчас ходят {self.logic.current_turn}")
         else:
-            # Второй клик: Пытаемся пойти ( Добавь отступ для всех строк ниже) 
+            # Второй клик: Пытаемся пойти (ИСПРАВЛЕНО: отступы выровнены)
             start = self.selected_square
             end = (r, c)
             
@@ -101,7 +98,6 @@ class ChessGUI:
             else:
                 messagebox.showwarning("Внимание", message)
             
-            # С
             self.reset_colors()        
             self.selected_square = None 
 

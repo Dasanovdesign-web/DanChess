@@ -2,12 +2,9 @@ from pieces import Knight, Pawn, Bishop, Queen, King, Rook
 
 class GameLogic:
     def __init__(self):
-        # self.board — это "память" этого конкретного объекта игры
         self.board = [["." for _ in range(8)] for _ in range(8)]
         self.setup_board() 
-        # переменная памяти очередности хода
         self.current_turn = "White"
-        
 
     def setup_board(self):
         # Расставляем пешки
@@ -22,14 +19,39 @@ class GameLogic:
             self.board[7][i] = main_lineup[i]("Black")
 
     def get_balance(self):
-        # Считаем разницу очков: белые в плюс, черные в минус
         score = 0
         for row in self.board:
             for cell in row:
                 if hasattr(cell, "value"):
-                    # Если фигура белая — прибавляем, если черная — отнимаем
                     score += cell.value if cell.color == "White" else -cell.value
         return score
+
+    def is_in_check(self, color):
+        king_pos = None
+        for r in range(8):
+            for c in range(8):
+                p = self.board[r][c]
+                if isinstance(p, King) and p.color == color:
+                    king_pos = (r, c)
+                    break
+            if king_pos: break
+
+        if not king_pos: return False
+
+        enemy_color = "Black" if color == "White" else "White"
+        for r in range(8):
+            for c in range(8):
+                p = self.board[r][c]
+                if p != "." and p.color == enemy_color:
+                    # Специальная проверка для пешки: она бьет только по диагонали
+                    if isinstance(p, Pawn):
+                        direction = 1 if p.color == "White" else -1
+                        if king_pos[0] == r + direction and abs(king_pos[1] - c) == 1:
+                            return True
+                    # Остальные фигуры проверяем как обычно
+                    elif p.is_valid_move((r, c), king_pos, self.board):
+                        return True
+        return False
 
     def move_piece(self, start, end):
         r1, c1 = start
@@ -42,30 +64,43 @@ class GameLogic:
 
         # 2. ЛОГИКА РОКИРОВКИ 
         if isinstance(piece, King) and abs(c2 - c1) == 2:
-            is_kingside = c2 > c1  # Определяем сторону (вправо или влево)
+            if self.is_in_check(piece.color):
+                return False, "Нельзя делать рокировку: король под шахом!"
+
+            is_kingside = c2 > c1
+            # Клетка, через которую проходит король (f1/f8 или d1/d8)
+            step = 1 if is_kingside else -1
+            passed_col = c1 + step
+            
+            # ПРОВЕРКА: Проходит ли король через битое поле?
+            # Временно ставим короля на соседнюю клетку и проверяем шах
+            self.board[r1][passed_col] = piece
+            self.board[r1][c1] = "."
+            if self.is_in_check(piece.color):
+                self.board[r1][c1] = piece # Возвращаем назад
+                self.board[r1][passed_col] = "."
+                return False, "Нельзя рокироваться через битое поле!"
+            self.board[r1][c1] = piece # Возвращаем назад для финального хода
+            self.board[r1][passed_col] = "."
+
             rook_col = 7 if is_kingside else 0
             rook_new_col = 5 if is_kingside else 3
             rook = self.board[r1][rook_col]
 
-            # Проверяем, что ладья на месте и ни она, ни король еще не ходили
             if isinstance(rook, Rook) and not piece.has_moved and not rook.has_moved:
-                # Двигаем Короля
+                # Финальное перемещение
                 self.board[r1][c2] = piece
                 self.board[r1][c1] = "."
-                # Двигаем Ладью
                 self.board[r1][rook_new_col] = rook
                 self.board[r1][rook_col] = "."
-                
-                # Помечаем, что они совершили свой первый ход
                 piece.has_moved = True
                 rook.has_moved = True
-                
                 self.switch_turn() 
                 return True, "Рокировка выполнена!"
-            else:
-                return False, "Рокировка невозможна (фигуры уже ходили)!"
+            return False, "Рокировка невозможна!"
 
-        # 3. Ход
+               
+        # 3. ОБЫЧНЫЙ ХОД
         if piece.is_valid_move(start, end, self.board):
             self.board[r2][c2] = piece
             self.board[r1][c1] = "."
@@ -78,9 +113,5 @@ class GameLogic:
 
         return False, "Эта фигура так не ходит!"
 
-    # Метод в класс GameLogic )
     def switch_turn(self):
-        if self.current_turn == "White":
-            self.current_turn = "Black"
-        else:
-            self.current_turn = "White"
+        self.current_turn = "Black" if self.current_turn == "White" else "White"
